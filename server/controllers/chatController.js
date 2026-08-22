@@ -1,13 +1,7 @@
 // chatController.js — Handles the floating study assistant chat.
 // Uses Gemini to answer interview-preparation questions in context.
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-let genAI;
-const getClient = () => {
-  if (!genAI) genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  return genAI;
-};
+const { generateWithFallback } = require('../services/geminiService');
 
 /**
  * POST /api/chat
@@ -28,9 +22,6 @@ const chat = async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
     }
 
-    const client = getClient();
-    const model = client.getGenerativeModel({ model: 'gemini-3.5-flash' });
-
     // Build context from recent history (last 6 messages)
     const historyText = history.slice(-6).map(m =>
       `${m.role === 'user' ? 'Student' : 'Tutor'}: ${m.content}`
@@ -45,8 +36,7 @@ ${historyText ? `Recent conversation:\n${historyText}\n\n` : ''}Student question
 Reply in 2-4 short paragraphs. Be clear and direct. Use simple examples where helpful.
 Do NOT use markdown formatting like **bold** or ## headers — plain text only.`.trim();
 
-    const result = await model.generateContent(prompt);
-    const answer = result.response.text().trim();
+    const answer = (await generateWithFallback(prompt)).trim();
 
     res.json({ answer });
   } catch (err) {

@@ -10,7 +10,6 @@ const QuestionSchema = new mongoose.Schema({
   explanation: { type: String },   // Shown after MCQ answer
   topic: {
     type: String,
-    enum: ['Java', 'DSA', 'DBMS', 'Operating Systems', 'Computer Networks'],
     required: true
   },
   type: {

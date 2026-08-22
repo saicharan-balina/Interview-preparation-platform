@@ -9,7 +9,38 @@ const getClient = () => {
   return genAI;
 };
 
-const getModel = () => getClient().getGenerativeModel({ model: 'gemini-3.5-flash' });
+const MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3.7-flash'
+];
+
+const generateWithFallback = async (prompt) => {
+  let lastError;
+
+  for (const modelName of MODELS) {
+    try {
+      console.log(`Trying ${modelName}...`);
+      const model = getClient().getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      console.log(`Success with ${modelName}`);
+      return result.response.text();
+    } catch (error) {
+      lastError = error;
+      const status = error?.status || error?.response?.status;
+
+      if (status === 429) {
+        console.log(`${modelName} quota exhausted. Trying next model...`);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError || new Error('All Gemini models are currently unavailable. Please try again later.');
+};
 
 // ─── ANSWER EVALUATION ──────────────────────────────────────────────────────
 // Sends the interview question and candidate transcript to Gemini.
@@ -50,8 +81,7 @@ Scoring: technicalAccuracy=40%, completeness=25%, clarity=20%, relevance=15%.
 Be constructive. This student is preparing for technical interviews.`.trim();
 
   try {
-    const result = await getModel().generateContent(prompt);
-    const text = result.response.text().trim()
+    const text = (await generateWithFallback(prompt)).trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     return validateEvaluation(JSON.parse(text));
   } catch (err) {
@@ -97,8 +127,7 @@ Rules:
 - Cover different aspects of the topic`.trim();
 
   try {
-    const result = await getModel().generateContent(prompt);
-    const text = result.response.text().trim()
+    const text = (await generateWithFallback(prompt)).trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(text);
 
@@ -164,8 +193,7 @@ Requirements:
 - Focus on what interviewers actually ask`.trim();
 
   try {
-    const result = await getModel().generateContent(prompt);
-    const text = result.response.text().trim()
+    const text = (await generateWithFallback(prompt)).trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(text);
     if (!parsed.sections || !Array.isArray(parsed.sections)) throw new Error('Invalid structure');
@@ -207,8 +235,7 @@ Respond with ONLY valid JSON — no markdown, no backticks, no extra text.
 `.trim();
 
   try {
-    const result = await getModel().generateContent(prompt);
-    const text = result.response.text().trim()
+    const text = (await generateWithFallback(prompt)).trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(text);
 
@@ -258,5 +285,11 @@ const getFallbackEvaluation = (transcript) => {
   };
 };
 
-module.exports = { evaluateAnswer, generateMCQQuestions, generateRevisionNotes, generateInterviewQuestions };
+module.exports = {
+  evaluateAnswer,
+  generateMCQQuestions,
+  generateRevisionNotes,
+  generateInterviewQuestions,
+  generateWithFallback
+};
 
