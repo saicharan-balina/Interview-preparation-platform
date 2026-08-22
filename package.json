@@ -1,0 +1,14 @@
+{
+  "name": "interview-platform",
+  "version": "1.0.0",
+  "description": "Interview Preparation and Practice Platform",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && node server.js",
+    "client": "cd client && npm run dev",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
