@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboard } from '../services/api';
+import { getDashboard, getProfile } from '../services/api';
 import ScoreCard from '../components/ScoreCard';
 
 const topicColors = {
@@ -22,8 +22,11 @@ export default function Dashboard() {
   const fetchDashboard = async () => {
     try {
       setLoading(true);
-      const result = await getDashboard();
-      setData(result);
+      const [dashboardResult, profileResult] = await Promise.all([
+        getDashboard(),
+        getProfile().catch(() => null)
+      ]);
+      setData({ ...dashboardResult, user: profileResult });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,7 +54,7 @@ export default function Dashboard() {
     <div className="fade-in">
       <div className="page-header">
         <h1 className="page-title">
-          Welcome back, {data?.user?.name ? data.user.name.split(' ')[0] : 'User'} 👋
+          Welcome back, {data?.user?.name ? data.user.name : 'User'} 👋
         </h1>
         <p className="page-subtitle">
           {data?.user?.targetRole ? `Here is your preparation overview for ${data.user.targetRole}` : 'Your preparation overview'}
@@ -91,8 +94,12 @@ export default function Dashboard() {
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ marginBottom: 'var(--sp-5)' }}>Score Breakdown</h3>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--sp-4)', padding: 'var(--sp-4) 0' }}>
-            <ScoreCard score={data?.practiceAvg ?? 0} label="Practice" size={160} />
-            <ScoreCard score={data?.interviewAvg ?? 0} label="Interviews" size={160} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-app)', padding: 'var(--sp-6)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', flex: '1', minWidth: '180px' }}>
+              <ScoreCard score={data?.practiceAvg ?? 0} label="Practice" size={140} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-app)', padding: 'var(--sp-6)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', flex: '1', minWidth: '180px' }}>
+              <ScoreCard score={data?.interviewAvg ?? 0} label="Interviews" size={140} />
+            </div>
           </div>
         </div>
 
@@ -100,16 +107,22 @@ export default function Dashboard() {
         <div className="card">
           <h3 style={{ marginBottom: 'var(--sp-3)' }}>Weak Topics</h3>
           {data?.weakTopics?.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)', marginBottom: 'var(--sp-4)' }}>
               {data.weakTopics.map(topic => (
-                <div key={topic} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: 500 }}>{topic}</span>
+                <div key={topic} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-app)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', transition: 'transform 0.2s ease', cursor: 'default' }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} />
+                    <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>{topic}</span>
+                  </div>
                   <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
-                    <button className="btn btn-sm btn-outline"
+                    <button className="btn btn-sm btn-outline" style={{ fontSize: '0.75rem', padding: '4px 10px', height: '28px' }}
                       onClick={() => navigate('/practice', { state: { topic } })}>
                       Practice
                     </button>
-                    <button className="btn btn-sm btn-secondary"
+                    <button className="btn btn-sm" style={{ fontSize: '0.75rem', padding: '4px 10px', height: '28px', background: 'var(--accent-soft)', color: 'var(--accent)', border: 'none', fontWeight: 600 }}
                       onClick={() => navigate('/revision', { state: { topic } })}>
                       Revise
                     </button>
