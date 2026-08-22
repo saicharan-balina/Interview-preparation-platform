@@ -14,7 +14,7 @@ Practice → Interview → Evaluation → Score + Feedback → Weak Areas → Re
 
 **Core features:**
 - MCQ practice with instant feedback
-- Video interview experience (camera + microphone)
+- Video interview experience 
 - Speech-to-text transcription of spoken answers
 - Gemini AI evaluation of technical answers
 - Transparent scoring with weighted formulas
@@ -337,53 +337,3 @@ Navigate to: **http://localhost:5173**
 The question bank and demo user are automatically seeded on first run.
 
 ---
-
-## Known Limitations
-
-1. **Single demo user** — No authentication. All data is stored under `userId: "demo"`. Multiple users on the same browser share data.
-
-2. **Browser STT compatibility** — Web Speech API works best in Chrome. Firefox support is limited. A text fallback is provided.
-
-3. **Gemini response time** — Evaluation takes 3–8 seconds. A loading state is shown.
-
-4. **Local MongoDB required** — No cloud database in this sprint build. MongoDB must be running locally.
-
-5. **No audio playback of answers** — Audio is captured via STT only; the actual audio file is not stored.
-
-6. **Question bank size** — ~30 questions across 5 topics. Sufficient for demonstration; a production system would need a larger bank.
-
----
-
-## AI Mistake Encountered During Development
-
-During testing of `geminiService.js`, Gemini occasionally returned its JSON response wrapped in markdown code fences:
-```
-```json
-{ "overallScore": 7.5, ... }
-```
-```
-
-This caused `JSON.parse()` to throw an error despite the prompt explicitly saying "respond with ONLY a valid JSON object."
-
-**Resolution:** Added a `.replace()` cleanup step before parsing to strip any code fences that Gemini adds:
-```javascript
-const cleaned = text
-  .replace(/^```json\s*/i, '')
-  .replace(/^```\s*/i, '')
-  .replace(/\s*```$/i, '')
-  .trim();
-```
-
-Additionally, a `getFallbackEvaluation()` function was added to handle complete parse failures gracefully — ensuring the interview flow completes even when Gemini has issues.
-
----
-
-## AI-Assisted Development
-
-This project was built with AI assistance (Google Gemini / Antigravity IDE). AI was used to:
-- Generate boilerplate code structures
-- Write evaluation prompts for Gemini
-- Create the question bank content
-- Draft revision notes content
-
-All architectural decisions, data flow design, scoring formulas, and engineering tradeoffs were explicitly designed per the project specification.
